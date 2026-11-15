@@ -2,6 +2,7 @@
 #include "Generation/RoomPrefab.h"
 #include "Generation/Spawn/SpawnSpotPicker.h"
 #include "Interactables/Battery.h"
+#include "Interactables/KeyItem.h"
 #include "Interactables/NoteItem.h"
 #include "Interactables/Throwable.h"
 
@@ -37,5 +38,11 @@ namespace LevelGen
 					Note->SetNoteText(Title, Settings.GetNoteBody(Index));
 				}
 			});
+	}
+
+	int32 FPickupSpawner::SpawnKeys(int32 Count) const
+	{
+		return SpawnBatchAtSpots(Context, Picker, Count, ESpawnMarkerType::Key,
+			Settings.KeyClass, PickupFloorZ, [](AActor*, int32) {});
 	}
 }

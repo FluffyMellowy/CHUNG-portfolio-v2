@@ -2,7 +2,10 @@
 #include "Blueprint/WidgetTree.h"
 #include "Components/ProgressBar.h"
 #include "Components/TextBlock.h"
+#include "Player/InteractionComponent.h"
+#include "Player/ItemSlotsComponent.h"
 #include "Player/PlayerCharacter.h"
+#include "UI/ItemSlotWidget.h"
 #include "Core/DreamLightingSettings.h"
 #include "Core/RunGameInstance.h"
 #include "Core/RunGameState.h"
@@ -22,6 +25,14 @@ void UHUDWidget::NativeConstruct()
 		MessageText->SetVisibility(ESlateVisibility::Collapsed);
 	}
 	RefreshObjective();
+	if (ItemSlot1)
+	{
+		ItemSlot1->SetNumber(UItemSlotsComponent::ThrowableSlot);
+	}
+	if (ItemSlot2)
+	{
+		ItemSlot2->SetNumber(UItemSlotsComponent::KeySlot);
+	}
 
 	ApplyTextStyle();
 #if WITH_EDITOR
@@ -31,8 +42,17 @@ void UHUDWidget::NativeConstruct()
 
 void UHUDWidget::ApplyTextStyle()
 {
+	ApplyHudTextStyle(WidgetTree);
+}
+
+void UHUDWidget::ApplyHudTextStyle(UWidgetTree* Tree)
+{
+	if (!Tree)
+	{
+		return;
+	}
 	const UDreamLightingSettings& S = UDreamLightingSettings::Get();
-	WidgetTree->ForEachWidget([&S](UWidget* Widget)
+	Tree->ForEachWidget([&S](UWidget* Widget)
 	{
 		if (UTextBlock* Text = Cast<UTextBlock>(Widget))
 		{
@@ -139,24 +159,45 @@ void UHUDWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 		{
 			BatteryBar->SetPercent(Player->GetBattery() / Player->GetMaxBattery());
 		}
-		if (ThrowableText)
-		{
-			ThrowableText->SetText(Player->GetThrowableCount() > 0
-				? FText::Format(LOCTEXT("ThrowableFormat", "ビン ×{0}"), Player->GetThrowableCount())
-				: FText::GetEmpty());
-		}
+		RefreshItemSlots(Player);
 		if (PromptText)
 		{
 			const FText Prompt = Player->GetInteractionPrompt();
+			const AActor* Focused = Player->GetInteraction() ? Player->GetInteraction()->GetFocusedInteractable() : nullptr;
+			const bool bKey = Player->GetItemSlots() && Player->GetItemSlots()->CanUseKeyOn(Focused);
 			if (Prompt.IsEmpty())
 			{
 				PromptText->SetText(FText::GetEmpty());
+			}
+			else if (bKey)
+			{
+				PromptText->SetText(FText::Format(LOCTEXT("PromptWithKey", "[E] {0}　[R] 鍵を使う"), Prompt));
 			}
 			else
 			{
 				PromptText->SetText(FText::Format(LOCTEXT("PromptFormat", "[E] {0}"), Prompt));
 			}
 		}
+	}
+}
+
+void UHUDWidget::RefreshItemSlots(const APlayerCharacter* Player)
+{
+	const UItemSlotsComponent* Slots = Player ? Player->GetItemSlots() : nullptr;
+	if (!Slots)
+	{
+		return;
+	}
+	const int32 Selected = Slots->GetSelectedSlot();
+	if (ItemSlot1)
+	{
+		const int32 Index = UItemSlotsComponent::ThrowableSlot;
+		ItemSlot1->SetItem(Slots->GetIcon(Index), Slots->GetCount(Index), Selected == Index);
+	}
+	if (ItemSlot2)
+	{
+		const int32 Index = UItemSlotsComponent::KeySlot;
+		ItemSlot2->SetItem(Slots->GetIcon(Index), Slots->GetCount(Index), Selected == Index);
 	}
 }
 

@@ -107,8 +107,8 @@ void AEnemyController::HandlePlayerTeleported(FVector From)
 	{
 		return;
 	}
-	// 目の前で消えた。追跡をやめて、消えた扉のあたりを探す
-	UE_LOG(LogQuietus, Log, TEXT("%s: player vanished through a rainbow door -> Search"), *GetName());
+	// 鍵で扉の向こうへ消えた。追跡をやめて、消えた扉のあたりを探す
+	UE_LOG(LogQuietus, Log, TEXT("%s: player vanished through a door with a key -> Search"), *GetName());
 	BB->ClearValue(EnemyKeys::TargetActor);
 	BB->SetValueAsBool(EnemyKeys::SeeingTarget, false);
 	BB->SetValueAsVector(EnemyKeys::LastKnownLocation, From);

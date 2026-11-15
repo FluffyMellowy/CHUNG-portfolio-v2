@@ -96,13 +96,10 @@ public:
 	/** 生成器用: スポーン時の開き具合を設定（BeginPlay前に呼ぶ） */
 	void SetStartOpenRatio(float Ratio) { StartOpenRatio = Ratio; }
 
-	/** 補間せずに閉じた状態にする（虹色の扉にするとき） */
-	void ForceClose();
+	/** 閉まっているか（閉じる途中も含む）。鍵は閉まった扉にしか使えない */
+	bool IsClosed() const { return !bIsOpen; }
 
-	/** 虹色の扉か（URainbowDoorComponent が付いていて未使用） */
-	bool IsRainbow() const;
-
-	/** 脱出部屋に面した扉か（虹色の扉の行き先から外す） */
+	/** 脱出部屋に面した扉か（鍵で移る行き先から外す） */
 	bool IsInExitRoom() const { return bInExitRoom; }
 	void SetInExitRoom(bool bIn) { bInExitRoom = bIn; }
 
@@ -121,7 +118,7 @@ protected:
 	/** 敵の待ち時間経過後に開く */
 	void OpenForEnemy();
 
-	/** 開け閉めの音（ForceClose は生成中にしか呼ばれないので鳴らさない） */
+	/** 開け閉めの音 */
 	void PlayDoorSound(bool bOpening) const;
 
 	/** ゾーン内に敵がいれば開扉タイマーを起動する（重複起動はしない） */

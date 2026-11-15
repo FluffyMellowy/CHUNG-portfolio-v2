@@ -27,9 +27,9 @@ struct FDreamDifficultyParams
 	UPROPERTY(Config, EditAnywhere, BlueprintReadOnly, meta = (ClampMin = 1, ClampMax = 5))
 	int32 ShardCount = 3;
 
-	/** 迷路に置く虹色の扉の数 */
+	/** 迷路に落ちている鍵の数（1 本で 1 回、閉じた扉から別の扉の前へ移れる） */
 	UPROPERTY(Config, EditAnywhere, BlueprintReadOnly, meta = (ClampMin = 0))
-	int32 RainbowDoorCount = 2;
+	int32 KeyCount = 2;
 
 	/** 廊下に浮かべる風船の数 */
 	UPROPERTY(Config, EditAnywhere, BlueprintReadOnly, meta = (ClampMin = 0))

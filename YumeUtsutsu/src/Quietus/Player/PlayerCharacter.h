@@ -15,6 +15,10 @@ class UStaminaComponent;
 class UPointLightComponent;
 class UPostProcessComponent;
 class UThrowInventoryComponent;
+class UItemSlotsComponent;
+class UDoorWarpComponent;
+class UInteractOutlineComponent;
+class UStaticMeshComponent;
 class UInputAction;
 struct FInputActionValue;
 
@@ -26,6 +30,9 @@ struct FInputActionValue;
  *   - UInteractionComponent    視線インタラクション（トレース／フォーカス／実行）
  *   - UStaminaComponent        スプリント用スタミナ
  *   - UThrowInventoryComponent 投擲物の所持と投擲
+ *   - UItemSlotsComponent      アイテム欄（番号キーで持つ / R で使う）
+ *   - UDoorWarpComponent       鍵を使った扉から別の扉の前へ移る
+ *   - UInteractOutlineComponent 近くの拾える物・ロッカー・キャビネットの白い輪郭
  */
 UCLASS(abstract)
 class APlayerCharacter : public ACharacter
@@ -64,6 +71,26 @@ class APlayerCharacter : public ACharacter
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UThrowInventoryComponent> ThrowInventory;
 
+	/** アイテム欄（番号キーで持つ / R で使う） */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UItemSlotsComponent> ItemSlots;
+
+	/** 鍵を使った扉から別の扉の前へ移る */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UDoorWarpComponent> DoorWarp;
+
+	/** 近くの拾える物・ロッカー・キャビネットの白い輪郭（距離・太さ・色はこのコンポーネントで調整） */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UInteractOutlineComponent> InteractOutline;
+
+	/** 手に持ったアイテムの見た目（カメラに付く。位置は各アイテムの HeldTransform） */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UStaticMeshComponent> HeldItemMesh;
+
+	/** 手に持ったアイテムだけを照らす弱い光（ライティングチャンネル 1。値は Dream Lighting の HeldItem） */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UPointLightComponent> HeldItemLight;
+
 protected:
 
 	/** Jump Input Action */
@@ -98,9 +125,17 @@ protected:
 	UPROPERTY(EditAnywhere, Category ="Input")
 	TObjectPtr<UInputAction> InteractAction;
 
-	/** 投擲入力アクション（単発） */
+	/** アイテム欄 1 番（投擲物）を持つ / しまう */
 	UPROPERTY(EditAnywhere, Category ="Input")
-	TObjectPtr<UInputAction> ThrowAction;
+	TObjectPtr<UInputAction> ItemSlot1Action;
+
+	/** アイテム欄 2 番（鍵）を持つ / しまう */
+	UPROPERTY(EditAnywhere, Category ="Input")
+	TObjectPtr<UInputAction> ItemSlot2Action;
+
+	/** 手に持ったアイテムを使う（R） */
+	UPROPERTY(EditAnywhere, Category ="Input")
+	TObjectPtr<UInputAction> UseItemAction;
 
 	// ---------------------------------------------------------------
 	// 移動 (Movement)
@@ -271,10 +306,17 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Input")
 	virtual void DoInteract();
 
-protected:
-	/** 所持している投擲物を視線方向へ投げる（ThrowInventoryコンポーネントへ委譲） */
+	/** アイテム欄の番号キー（ItemSlots コンポーネントへ委譲） */
 	UFUNCTION(BlueprintCallable, Category="Input")
-	virtual void DoThrow();
+	virtual void DoSelectItemSlot(int32 Slot);
+
+	/** 手に持ったアイテムを使う（R。ItemSlots コンポーネントへ委譲） */
+	UFUNCTION(BlueprintCallable, Category="Input")
+	virtual void DoUseItem();
+
+protected:
+	void SelectItemSlot1() { DoSelectItemSlot(1); }
+	void SelectItemSlot2() { DoSelectItemSlot(2); }
 
 	/** Set up input action bindings */
 	virtual void SetupPlayerInputComponent(UInputComponent* InputComponent) override;
@@ -345,4 +387,8 @@ public:
 
 	UFUNCTION(BlueprintPure, Category="Player|Throwable")
 	int32 GetThrowableCount() const;
+
+	UThrowInventoryComponent* GetThrowInventory() const { return ThrowInventory; }
+	UItemSlotsComponent* GetItemSlots() const { return ItemSlots; }
+	UDoorWarpComponent* GetDoorWarp() const { return DoorWarp; }
 };

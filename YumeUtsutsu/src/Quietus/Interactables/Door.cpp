@@ -2,7 +2,6 @@
 #include "Components/BoxComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Enemies/EnemyCharacter.h"
-#include "Interactables/RainbowDoorComponent.h"
 #include "TimerManager.h"
 #include "Core/DreamFeedbackSettings.h"
 #include "Feedback/FeedbackSubsystem.h"
@@ -129,33 +128,8 @@ void ADoor::ApplySingleLeaf()
 	DoorMesh2->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 }
 
-void ADoor::ForceClose()
-{
-	bIsOpen = false;
-	GetWorldTimerManager().ClearTimer(EnemyOpenTimer);
-	DoorPivot->SetRelativeRotation(FRotator::ZeroRotator);
-	DoorPivot2->SetRelativeRotation(FRotator::ZeroRotator);
-	SetLeafPawnBlocking(true);
-}
-
-bool ADoor::IsRainbow() const
-{
-	const URainbowDoorComponent* Rainbow = FindComponentByClass<URainbowDoorComponent>();
-	return Rainbow && Rainbow->IsCharged();
-}
-
 void ADoor::Interact_Implementation(APlayerCharacter* Interactor)
 {
-	// 虹色の扉は開かずに、別の扉の前へ運ぶ
-	if (URainbowDoorComponent* Rainbow = FindComponentByClass<URainbowDoorComponent>())
-	{
-		if (Rainbow->IsCharged())
-		{
-			Rainbow->Use(Interactor);
-			return;
-		}
-	}
-
 	// 開閉トグル。実際の回転は Tick が目標角度へ追従することで行われる
 	bIsOpen = !bIsOpen;
 	PlayDoorSound(bIsOpen);
@@ -175,10 +149,6 @@ void ADoor::Interact_Implementation(APlayerCharacter* Interactor)
 
 FText ADoor::GetInteractionPrompt_Implementation() const
 {
-	if (IsRainbow())
-	{
-		return LOCTEXT("OpenRainbowDoor", "虹色の扉を開ける");
-	}
 	return bIsOpen ? LOCTEXT("CloseDoor", "閉める") : LOCTEXT("OpenDoor", "開ける");
 }
 
@@ -193,8 +163,7 @@ void ADoor::OnZoneBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* Othe
 
 void ADoor::ArmEnemyTimerIfNeeded()
 {
-	// 虹色の扉はピエロには開けられない
-	if (bIsOpen || IsRainbow() || GetWorldTimerManager().IsTimerActive(EnemyOpenTimer))
+	if (bIsOpen || GetWorldTimerManager().IsTimerActive(EnemyOpenTimer))
 	{
 		return;
 	}

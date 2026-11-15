@@ -23,8 +23,8 @@
 #include "Interactables/Cabinet.h"
 #include "Interactables/Locker.h"
 #include "Interactables/NoteItem.h"
+#include "Interactables/KeyItem.h"
 #include "Interactables/Throwable.h"
-#include "Interactables/RainbowDoorComponent.h"
 #include "Player/PlayerCharacter.h"
 #include "Player/FlashlightComponent.h"
 #include "Player/KillCamComponent.h"
@@ -320,11 +320,7 @@ namespace
 	{
 		if (Kind == TEXT("Door"))
 		{
-			return FindNearest<ADoor>(World, From, [](const ADoor* D) { return !D->IsRainbow(); });
-		}
-		if (Kind == TEXT("Rainbow"))
-		{
-			return FindNearest<ADoor>(World, From, [](const ADoor* D) { return D->IsRainbow(); });
+			return FindNearest<ADoor>(World, From, [](const ADoor*) { return true; });
 		}
 		if (Kind == TEXT("Locker"))
 		{
@@ -349,6 +345,19 @@ namespace
 		if (Kind == TEXT("Exit"))
 		{
 			return FindNearest<AExitDoor>(World, From, [](const AExitDoor*) { return true; });
+		}
+		// 生成器が置いたメモ（SimPickup Note は本文のない新品を出すので、書体の確認にはこちらを使う）
+		if (Kind == TEXT("Note"))
+		{
+			return FindNearest<ANoteItem>(World, From, [](const ANoteItem*) { return true; });
+		}
+		if (Kind == TEXT("Key"))
+		{
+			return FindNearest<AKeyItem>(World, From, [](const AKeyItem*) { return true; });
+		}
+		if (Kind == TEXT("Throwable"))
+		{
+			return FindNearest<AThrowable>(World, From, [](const AThrowable*) { return true; });
 		}
 		return nullptr;
 	}
@@ -394,27 +403,36 @@ bool AFirstPersonPlayerController::StartKillCam(TFunction<void()> OnBlackout)
 	return true;
 }
 
-void AFirstPersonPlayerController::GotoRainbowDoor()
+void AFirstPersonPlayerController::SimSlot(int32 Slot)
 {
 #if !UE_BUILD_SHIPPING
-	APawn* MyPawn = GetPawn();
-	if (const ADoor* Door = MyPawn ? FindNearest<ADoor>(GetWorld(), MyPawn->GetActorLocation(), [](const ADoor* D) { return D->IsRainbow(); }) : nullptr)
+	if (APlayerCharacter* MyCharacter = Cast<APlayerCharacter>(GetPawn()))
 	{
-		// 正面だと手元の灯りで板が白く飛ぶので、少し斜めから見る
-		StandFacing(MyPawn, this, Door->GetActorLocation(), Door->GetActorRightVector().RotateAngleAxis(35.0f, FVector::UpVector), 280.0f);
+		MyCharacter->DoSelectItemSlot(Slot);
 	}
 #endif
 }
 
-void AFirstPersonPlayerController::UseRainbowDoor()
+void AFirstPersonPlayerController::SimUseItem()
+{
+#if !UE_BUILD_SHIPPING
+	if (APlayerCharacter* MyCharacter = Cast<APlayerCharacter>(GetPawn()))
+	{
+		MyCharacter->DoUseItem();
+	}
+#endif
+}
+
+void AFirstPersonPlayerController::SimCloseDoor()
 {
 #if !UE_BUILD_SHIPPING
 	APlayerCharacter* MyCharacter = Cast<APlayerCharacter>(GetPawn());
-	ADoor* Door = MyCharacter ? FindNearest<ADoor>(GetWorld(), MyCharacter->GetActorLocation(), [](const ADoor* D) { return D->IsRainbow(); }) : nullptr;
-	if (URainbowDoorComponent* Rainbow = Door ? Door->FindComponentByClass<URainbowDoorComponent>() : nullptr)
+	ADoor* Door = MyCharacter ? FindNearest<ADoor>(GetWorld(), MyCharacter->GetActorLocation(), [](const ADoor*) { return true; }) : nullptr;
+	if (Door && !Door->IsClosed())
 	{
-		Rainbow->Use(MyCharacter);
+		IInteractable::Execute_Interact(Door, MyCharacter);
 	}
+	UE_LOG(LogQuietus, Display, TEXT("SimCloseDoor: %s closed=%d"), *GetNameSafe(Door), Door && Door->IsClosed());
 #endif
 }
 
@@ -592,6 +610,7 @@ void AFirstPersonPlayerController::SimPickup(const FString& Kind)
 	APlayerCharacter* MyCharacter = Cast<APlayerCharacter>(GetPawn());
 	const TCHAR* Path = Kind == TEXT("Battery") ? TEXT("/Game/Interactables/BP_Battery.BP_Battery_C")
 		: Kind == TEXT("Note") ? TEXT("/Game/Interactables/BP_NoteItem.BP_NoteItem_C")
+		: Kind == TEXT("Key") ? TEXT("/Game/Interactables/BP_KeyItem.BP_KeyItem_C")
 		: TEXT("/Game/Interactables/BP_Throwable.BP_Throwable_C");
 	UClass* Class = LoadClass<AActor>(nullptr, Path);
 	if (!MyCharacter || !Class)
@@ -687,8 +706,9 @@ void AFirstPersonPlayerController::GotoObject(const FString& Kind, float Distanc
 		return;
 	}
 
-	// 相手との間に壁がなく、足元に床がある向きを正面から順に探す
+	// 相手との間に壁がなく、足元に床がある向きを正面から順に探す。扉の正面は通り抜ける向き（ローカル Y）
 	const FVector Center = Target->GetActorLocation() + FVector(0.0f, 0.0f, LookHeight);
+	const FVector Front = Target->IsA<ADoor>() ? Target->GetActorRightVector() : Target->GetActorForwardVector();
 	FCollisionQueryParams Params;
 	Params.AddIgnoredActor(Target);
 	Params.AddIgnoredActor(MyPawn);
@@ -697,10 +717,12 @@ void AFirstPersonPlayerController::GotoObject(const FString& Kind, float Distanc
 		for (int32 i = 0; i < 16; ++i)
 		{
 			const float Offset = (i % 2 == 0 ? 1.0f : -1.0f) * 22.5f * ((i + 1) / 2);
-			const FVector Dir = Target->GetActorForwardVector().RotateAngleAxis(Offset, FVector::UpVector).GetSafeNormal2D();
+			const FVector Dir = Front.RotateAngleAxis(Offset, FVector::UpVector).GetSafeNormal2D();
 			const FVector Spot = Center + Dir * Distance * Scale;
+			// 壁際の物（ロッカーなど）は中心が壁に掛かるので、少し手前から見通しを調べる
+			const FVector From = Center + Dir * FMath::Min(70.0f, Distance * Scale * 0.5f);
 			FHitResult Hit;
-			if (GetWorld()->LineTraceSingleByChannel(Hit, Center, Spot, ECC_Visibility, Params))
+			if (GetWorld()->LineTraceSingleByChannel(Hit, From, Spot, ECC_Visibility, Params))
 			{
 				continue;
 			}

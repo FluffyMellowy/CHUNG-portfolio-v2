@@ -4,11 +4,10 @@
 #include "Engine/DeveloperSettings.h"
 #include "DreamGimmicks.generated.h"
 
-class UMaterialInterface;
 class USoundBase;
 
 /**
- *  迷路の仕掛け（虹色の扉・風船）の調整値（プロジェクト設定 > Game > Dream Gimmicks）。
+ *  迷路の仕掛け（鍵で扉から移る・風船）の調整値（プロジェクト設定 > Game > Dream Gimmicks）。
  *  個数は難易度ごとなので Dream Difficulty 側にある。
  */
 UCLASS(Config = Game, DefaultConfig, meta = (DisplayName = "Dream Gimmicks"))
@@ -21,37 +20,26 @@ public:
 
 	virtual FName GetCategoryName() const override { return TEXT("Game"); }
 
-	// ---- 虹色の扉 ----
-
-	/** 虹色の間だけ扉板に貼るマテリアル（使うと元のマテリアルに戻る）。
-	 *  半透明の膜を重ねる方式だと懐中電灯で白飛びした板に埋もれるので、板そのものを塗り替える */
-	UPROPERTY(Config, EditAnywhere, Category="RainbowDoor")
-	TSoftObjectPtr<UMaterialInterface> RainbowSurfaceMaterial;
-
-	/** 扉のまわりをほのかに照らす灯り（cd）と届く範囲 (cm) */
-	UPROPERTY(Config, EditAnywhere, Category="RainbowDoor", meta = (ClampMin = 0))
-	float RainbowLightIntensity = 4.0f;
-
-	UPROPERTY(Config, EditAnywhere, Category="RainbowDoor", meta = (ClampMin = 0, Units = "cm"))
-	float RainbowLightRadius = 350.0f;
+	// ---- 鍵（閉じた扉に使うと迷路の別の扉の前へ移る） ----
+	// 行き先の選び方は仮。今は旧「虹色の扉」と同じ規則
 
 	/** 行き先の扉から、この距離以内にピエロがいたら行き先にしない (cm) */
-	UPROPERTY(Config, EditAnywhere, Category="RainbowDoor", meta = (ClampMin = 0, Units = "cm"))
+	UPROPERTY(Config, EditAnywhere, Category="KeyWarp", meta = (ClampMin = 0, Units = "cm"))
 	float ArrivalEnemyExclusionRadius = 1500.0f;
 
-	/** 出発した扉からこの距離以内の扉は行き先にしない (cm) */
-	UPROPERTY(Config, EditAnywhere, Category="RainbowDoor", meta = (ClampMin = 0, Units = "cm"))
+	/** 鍵を使った扉からこの距離以内の扉は行き先にしない (cm) */
+	UPROPERTY(Config, EditAnywhere, Category="KeyWarp", meta = (ClampMin = 0, Units = "cm"))
 	float MinTravelDistance = 1200.0f;
 
 	/** 行き先の扉から、出てくる位置までの距離 (cm)。扉を背にして立つ */
-	UPROPERTY(Config, EditAnywhere, Category="RainbowDoor", meta = (ClampMin = 0, Units = "cm"))
+	UPROPERTY(Config, EditAnywhere, Category="KeyWarp", meta = (ClampMin = 0, Units = "cm"))
 	float ArrivalOffset = 110.0f;
 
 	/** 光で白く満ちるまで／光が引くまで（秒） */
-	UPROPERTY(Config, EditAnywhere, Category="RainbowDoor", meta = (ClampMin = 0.05, Units = "s"))
+	UPROPERTY(Config, EditAnywhere, Category="KeyWarp", meta = (ClampMin = 0.05, Units = "s"))
 	float WhiteoutTime = 0.45f;
 
-	UPROPERTY(Config, EditAnywhere, Category="RainbowDoor", meta = (ClampMin = 0.05, Units = "s"))
+	UPROPERTY(Config, EditAnywhere, Category="KeyWarp", meta = (ClampMin = 0.05, Units = "s"))
 	float RevealTime = 1.0f;
 
 	// ---- 風船 ----

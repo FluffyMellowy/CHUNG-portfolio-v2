@@ -16,6 +16,7 @@ class AEnemyCharacter;
 class ABattery;
 class AThrowable;
 class ANoteItem;
+class AKeyItem;
 class ACabinet;
 class ALocker;
 class ABalloon;
@@ -245,6 +246,10 @@ struct FGenItemSettings
 	/** ロアメモ本文プール（配置順に使い回す） */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (MultiLine = true))
 	TArray<FText> NoteTexts;
+
+	/** 鍵のクラス（数は難易度ごと。Dream Difficulty の KeyCount） */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TSubclassOf<AKeyItem> KeyClass;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (ClampMin = 0))
 	int32 CabinetCount = 3;

@@ -19,6 +19,7 @@ enum class ESpawnMarkerType : uint8
 	Throwable      UMETA(DisplayName = "Throwable"),
 	Note           UMETA(DisplayName = "Note"),
 	Cabinet        UMETA(DisplayName = "Cabinet"),
+	Key            UMETA(DisplayName = "Key"),
 };
 
 /**

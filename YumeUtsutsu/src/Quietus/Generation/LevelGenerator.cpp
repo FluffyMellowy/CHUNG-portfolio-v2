@@ -318,12 +318,12 @@ void ALevelGenerator::SpawnGameplayActors(const ULevelGenPreset& Settings, const
 		UE_LOG(LogQuietus, Log, TEXT("%s: spawned %d interior doors"), *GetName(), NumDoors);
 	}
 
-	// 仕掛けは最後に置く（既存の乱数の消費順を変えないため）
+	// 難易度で数が決まるもの（鍵・風船）は最後に置く（既存の乱数の消費順を変えないため）
 	const FDreamDifficultyParams& Difficulty = URunGameInstance::GetParams(this);
+	const int32 NumKeys = PickupSpawner.SpawnKeys(Difficulty.KeyCount);
 	const LevelGen::FGimmickSpawner GimmickSpawner(Context, Settings.Items);
-	const int32 NumRainbow = GimmickSpawner.SpawnRainbowDoors(Doors, Difficulty.RainbowDoorCount);
 	const int32 NumBalloons = GimmickSpawner.SpawnBalloons(Difficulty.BalloonCount);
-	UE_LOG(LogQuietus, Log, TEXT("%s: gimmicks (rainbow doors=%d balloons=%d)"), *GetName(), NumRainbow, NumBalloons);
+	UE_LOG(LogQuietus, Log, TEXT("%s: gimmicks (keys=%d balloons=%d)"), *GetName(), NumKeys, NumBalloons);
 }
 
 LevelGen::FGeometryComponents ALevelGenerator::GetGeometryComponents() const

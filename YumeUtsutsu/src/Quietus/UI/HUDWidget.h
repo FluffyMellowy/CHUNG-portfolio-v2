@@ -6,9 +6,11 @@
 
 class UProgressBar;
 class UTextBlock;
+class UItemSlotWidget;
+class UWidgetTree;
 
 /**
- *  インゲームHUD。スタミナ／バッテリー／夢の欠片の数と次の目標／難易度と残りの命／インタラクトプロンプトを表示する。
+ *  インゲームHUD。スタミナ／バッテリー／夢の欠片の数と次の目標／難易度と残りの命／インタラクトプロンプト／アイテム欄を表示する。
  *  UMG側は同名ウィジェット（BindWidget）を置くだけでよく、更新ロジックはここが持つ。
  */
 UCLASS(abstract)
@@ -46,9 +48,12 @@ protected:
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> PromptText;
 
-	/** 投擲物所持数（例: ビン ×2）。WBP側に未配置でも動くようOptional */
+	/** アイテム欄（左下）。1 = 投擲物、2 = 鍵 */
 	UPROPERTY(meta = (BindWidgetOptional))
-	TObjectPtr<UTextBlock> ThrowableText = nullptr;
+	TObjectPtr<UItemSlotWidget> ItemSlot1 = nullptr;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UItemSlotWidget> ItemSlot2 = nullptr;
 
 	/** スタミナバーが橙色に変わる残量比 */
 	UPROPERTY(EditDefaultsOnly, Category="HUD|Stamina", meta = (ClampMin = 0, ClampMax = 1))
@@ -56,6 +61,9 @@ protected:
 
 	/** 文字の縁取りと影（Dream Lighting）をすべての TextBlock に掛ける。明るい床の上でも読めるように */
 	void ApplyTextStyle();
+
+	/** アイテム欄の表示を手持ちの数・選んでいる欄に合わせる */
+	void RefreshItemSlots(const class APlayerCharacter* Player);
 
 #if WITH_EDITOR
 	void HandleLightingChanged(UObject* Settings, struct FPropertyChangedEvent& Event) { ApplyTextStyle(); }
@@ -76,4 +84,7 @@ protected:
 public:
 	/** 捕まったが命が残っているときの中央メッセージ */
 	void ShowLifeLost(int32 LivesRemaining);
+
+	/** HUD の文字の縁取りと影を、ツリー内のすべての TextBlock に掛ける（アイテム欄の中の文字にも使う） */
+	static void ApplyHudTextStyle(UWidgetTree* Tree);
 };

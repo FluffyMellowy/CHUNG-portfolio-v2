@@ -16,6 +16,10 @@
 #include "Player/InteractionComponent.h"
 #include "Player/StaminaComponent.h"
 #include "Player/ThrowInventoryComponent.h"
+#include "Player/ItemSlotsComponent.h"
+#include "Player/DoorWarpComponent.h"
+#include "Player/InteractOutlineComponent.h"
+#include "Components/StaticMeshComponent.h"
 #include "Quietus.h"
 #include "Components/AudioComponent.h"
 #include "Core/DreamFeedbackSettings.h"
@@ -68,6 +72,25 @@ APlayerCharacter::APlayerCharacter()
 	StaminaComponent = CreateDefaultSubobject<UStaminaComponent>(TEXT("Stamina"));
 	ThrowInventory = CreateDefaultSubobject<UThrowInventoryComponent>(TEXT("ThrowInventory"));
 
+	// アイテム欄と鍵での移動。手に持った物はカメラに付け、一人称の描画（壁にめり込まない）で自分にだけ見せる
+	ItemSlots = CreateDefaultSubobject<UItemSlotsComponent>(TEXT("ItemSlots"));
+	DoorWarp = CreateDefaultSubobject<UDoorWarpComponent>(TEXT("DoorWarp"));
+	InteractOutline = CreateDefaultSubobject<UInteractOutlineComponent>(TEXT("InteractOutline"));
+	HeldItemMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Held Item Mesh"));
+	HeldItemMesh->SetupAttachment(FirstPersonCameraComponent);
+	HeldItemMesh->SetOnlyOwnerSee(true);
+	HeldItemMesh->FirstPersonPrimitiveType = EFirstPersonPrimitiveType::FirstPerson;
+	HeldItemMesh->SetCollisionProfileName(FName("NoCollision"));
+	HeldItemMesh->SetCastShadow(false);
+	HeldItemMesh->SetVisibility(false);
+	// 手元の物は世界の光（チャンネル 0）に加えて、自分専用の光（チャンネル 1）も受ける
+	HeldItemMesh->SetLightingChannels(true, true, false);
+	HeldItemLight = CreateDefaultSubobject<UPointLightComponent>(TEXT("Held Item Light"));
+	HeldItemLight->SetupAttachment(FirstPersonCameraComponent);
+	HeldItemLight->SetMobility(EComponentMobility::Movable);
+	HeldItemLight->SetCastShadows(false);
+	HeldItemLight->SetLightingChannels(false, true, false);
+
 	// configure the character comps
 	GetMesh()->SetOwnerNoSee(true);
 	GetMesh()->FirstPersonPrimitiveType = EFirstPersonPrimitiveType::WorldSpaceRepresentation;
@@ -94,6 +117,7 @@ void APlayerCharacter::BeginPlay()
 
 	// BP側で調整された値を反映するため、初期化はコンストラクタではなくここで行う
 	GetCharacterMovement()->MaxWalkSpeed = WalkSpeed;
+	ItemSlots->SetHeldMesh(HeldItemMesh);
 
 	// 懐中電灯の揺れはスプリント速度で最大になる
 	Flashlight->SetBobReferenceSpeed(SprintSpeed);
@@ -135,6 +159,17 @@ void APlayerCharacter::ApplyLightingSettings()
 	DarkFillLight->SetIndirectLightingIntensity(0.0f);
 	DarkFillLight->SetVolumetricScatteringIntensity(0.0f);
 	DarkFillLight->SetVisibility(S.bDarkFill);
+
+	HeldItemLight->SetRelativeLocation(S.HeldItemLightOffset);
+	HeldItemLight->SetIntensityUnits(ELightUnits::Unitless);
+	HeldItemLight->SetUseInverseSquaredFalloff(false);
+	HeldItemLight->SetLightFalloffExponent(2.0f);
+	HeldItemLight->SetIntensity(S.HeldItemLightIntensity);
+	HeldItemLight->SetAttenuationRadius(S.HeldItemLightRadius);
+	HeldItemLight->SetLightColor(S.HeldItemLightColor);
+	HeldItemLight->SetIndirectLightingIntensity(0.0f);
+	HeldItemLight->SetVolumetricScatteringIntensity(0.0f);
+	HeldItemLight->SetVisibility(S.bHeldItemLight);
 
 	FPostProcessSettings& PP = ExposureOverride->Settings;
 	PP.bOverride_AutoExposureMinBrightness = true;
@@ -190,7 +225,8 @@ void APlayerCharacter::Tick(float DeltaSeconds)
 	if (bDebugThrow)
 	{
 		bDebugThrow = false;
-		DoThrow();
+		ThrowInventory->Throw(FirstPersonCameraComponent->GetComponentLocation(), FirstPersonCameraComponent->GetForwardVector());
+		ItemSlots->RefreshHeld();
 	}
 #endif
 }
@@ -224,10 +260,18 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 		// インタラクト（単発）
 		EnhancedInputComponent->BindAction(InteractAction, ETriggerEvent::Started, this, &APlayerCharacter::DoInteract);
 
-		// 投擲（アセット未割り当てでも起動できるようガード）
-		if (ThrowAction)
+		// アイテム欄（番号キーで持つ / R で使う）。アセット未割り当てでも起動できるようガード
+		if (ItemSlot1Action)
 		{
-			EnhancedInputComponent->BindAction(ThrowAction, ETriggerEvent::Started, this, &APlayerCharacter::DoThrow);
+			EnhancedInputComponent->BindAction(ItemSlot1Action, ETriggerEvent::Started, this, &APlayerCharacter::SelectItemSlot1);
+		}
+		if (ItemSlot2Action)
+		{
+			EnhancedInputComponent->BindAction(ItemSlot2Action, ETriggerEvent::Started, this, &APlayerCharacter::SelectItemSlot2);
+		}
+		if (UseItemAction)
+		{
+			EnhancedInputComponent->BindAction(UseItemAction, ETriggerEvent::Started, this, &APlayerCharacter::DoUseItem);
 		}
 	}
 	else
@@ -460,7 +504,7 @@ void APlayerCharacter::TickDebugPath(float DeltaSeconds)
 				ADoor* Nearest = nullptr;
 				for (TActorIterator<ADoor> It(GetWorld()); It; ++It)
 				{
-					if (!It->IsRainbow() && FVector::Dist2D(It->GetActorLocation(), GetActorLocation()) < 260.0f)
+					if (FVector::Dist2D(It->GetActorLocation(), GetActorLocation()) < 260.0f)
 					{
 						Nearest = *It;
 						break;
@@ -602,14 +646,20 @@ FText APlayerCharacter::GetInteractionPrompt() const
 	return Interaction->GetInteractionPrompt();
 }
 
-void APlayerCharacter::DoThrow()
+void APlayerCharacter::DoSelectItemSlot(int32 Slot)
 {
-	ThrowInventory->Throw(FirstPersonCameraComponent->GetComponentLocation(), FirstPersonCameraComponent->GetForwardVector());
+	ItemSlots->SelectSlot(Slot);
+}
+
+void APlayerCharacter::DoUseItem()
+{
+	ItemSlots->UseSelected(Interaction->GetFocusedInteractable());
 }
 
 void APlayerCharacter::AddThrowable(TSubclassOf<AThrowable> PickedClass)
 {
 	ThrowInventory->Add(PickedClass);
+	ItemSlots->RefreshHeld();
 }
 
 int32 APlayerCharacter::GetThrowableCount() const

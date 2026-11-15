@@ -1,10 +1,8 @@
 #include "Core/DreamGimmicks.h"
-#include "Materials/MaterialInterface.h"
 #include "Sound/SoundBase.h"
 
 UDreamGimmickSettings::UDreamGimmickSettings()
 {
-	RainbowSurfaceMaterial = TSoftObjectPtr<UMaterialInterface>(FSoftObjectPath(TEXT("/Game/Interactables/RainbowDoor/M_RainbowDoor.M_RainbowDoor")));
 	BalloonPopSound = TSoftObjectPtr<USoundBase>(FSoftObjectPath(TEXT("/Game/Interactables/Balloon/S_BalloonPop.S_BalloonPop")));
 
 	// ゴム風船らしい少しくすんだ原色寄り

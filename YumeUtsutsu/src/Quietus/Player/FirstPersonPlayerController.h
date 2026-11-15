@@ -155,13 +155,17 @@ public:
 
 	// ---- 確認用コンソールコマンド（ハーネスや手元の検証用。出荷ビルドでは何もしない） ----
 
-	/** いちばん近い虹色の扉の前へ移る */
+	/** アイテム欄の番号キーを押したことにする（1 = 投擲物、2 = 鍵） */
 	UFUNCTION(Exec)
-	void GotoRainbowDoor();
+	void SimSlot(int32 Slot);
 
-	/** いちばん近い虹色の扉を使う */
+	/** R を押したことにする（手に持ったアイテムを視線の先に使う） */
 	UFUNCTION(Exec)
-	void UseRainbowDoor();
+	void SimUseItem();
+
+	/** いちばん近い扉が開いていれば閉める（SimInteract Door は開け閉めの切り替えなので、閉じた扉を作るのに使う） */
+	UFUNCTION(Exec)
+	void SimCloseDoor();
 
 	/** いちばん近い風船の前へ移る */
 	UFUNCTION(Exec)
@@ -193,11 +197,11 @@ public:
 	UFUNCTION(Exec)
 	void SimFlashlight();
 
-	/** 足元に出して拾う。Kind = Battery / Note / Throwable */
+	/** 足元に出して拾う。Kind = Battery / Note / Throwable / Key */
 	UFUNCTION(Exec)
 	void SimPickup(const FString& Kind);
 
-	/** いちばん近いものを操作する。Kind = Door / Rainbow / Locker / Cabinet / Clock / Shard / Balloon / Exit */
+	/** いちばん近いものを操作する。Kind = Door / Locker / Cabinet / Clock / Shard / Balloon / Exit / Note / Key / Throwable */
 	UFUNCTION(Exec)
 	void SimInteract(const FString& Kind);
 

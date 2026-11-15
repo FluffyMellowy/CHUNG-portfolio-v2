@@ -16,7 +16,9 @@ public class QuietusEditor : ModuleRules
 		PrivateDependencyModuleNames.AddRange(new string[] {
 			"UnrealEd",
 			"AIGraph",
-			"BehaviorTreeEditor"
+			"BehaviorTreeEditor",
+			"SlateCore",
+			"AssetRegistry"
 		});
 	}
 }

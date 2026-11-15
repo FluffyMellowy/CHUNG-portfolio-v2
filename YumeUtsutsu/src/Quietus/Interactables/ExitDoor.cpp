@@ -70,6 +70,12 @@ void AExitDoor::BeginPlay()
 	{
 		SetSlotCount(SlotCount);
 	}
+	// 生成器はワールドの初期化中（GameState ができる前）に扉を置くので、SetSlotCount からの通知は届かない。
+	// ここで溝の数を改めて必要数として知らせる（届かないと必要数が既定の 3 のままになる）
+	else if (ARunGameState* GameState = ARunGameState::Get(this))
+	{
+		GameState->SetRequiredShards(Slots.Num());
+	}
 }
 
 void AExitDoor::SetSlotCount(int32 InSlotCount)

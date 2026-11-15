@@ -58,4 +58,7 @@ public:
 
 	UFUNCTION(BlueprintPure, Category="Throwable")
 	int32 GetCount() const { return ThrowableCount; }
+
+	/** 手元の投擲物のクラス（アイテム欄のアイコンと手に持った見た目に使う）。まだ拾っていなければ既定のクラス */
+	TSubclassOf<AThrowable> GetCarriedClass() const;
 };

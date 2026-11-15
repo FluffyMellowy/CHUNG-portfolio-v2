@@ -84,6 +84,25 @@ public:
 	UPROPERTY(Config, EditAnywhere, BlueprintReadWrite, Category="DarkFill", meta = (EditCondition = "bDarkFill", ClampMin = 0, UIMax = 1))
 	float DarkFillSpecular = 0.0f;
 
+	// ---- 手に持ったアイテムの光（手元の物だけを照らす。周りは照らさない） ----
+	// 懐中電灯の光源はカメラより前にあり、手元の物は一人称の縮尺でカメラ寄りに描かれるので、懐中電灯が届かない
+
+	UPROPERTY(Config, EditAnywhere, BlueprintReadWrite, Category="HeldItem")
+	bool bHeldItemLight = true;
+
+	UPROPERTY(Config, EditAnywhere, BlueprintReadWrite, Category="HeldItem", meta = (EditCondition = "bHeldItemLight", ClampMin = 0, UIMax = 20))
+	float HeldItemLightIntensity = 3.0f;
+
+	/** 光源の位置（カメラ基準。X=前、Y=右、Z=上） */
+	UPROPERTY(Config, EditAnywhere, BlueprintReadWrite, Category="HeldItem", meta = (EditCondition = "bHeldItemLight"))
+	FVector HeldItemLightOffset = FVector(4.0f, -6.0f, 6.0f);
+
+	UPROPERTY(Config, EditAnywhere, BlueprintReadWrite, Category="HeldItem", meta = (EditCondition = "bHeldItemLight", ClampMin = 10, UIMax = 200, Units = "cm"))
+	float HeldItemLightRadius = 80.0f;
+
+	UPROPERTY(Config, EditAnywhere, BlueprintReadWrite, Category="HeldItem", meta = (EditCondition = "bHeldItemLight"))
+	FLinearColor HeldItemLightColor = FLinearColor(1.0f, 0.95f, 0.88f);
+
 	// ---- 自動露出（EV100。小さいほど画面が明るくなる） ----
 
 	/** 暗い所で明るくする上限。下げると暗闇がより見える */

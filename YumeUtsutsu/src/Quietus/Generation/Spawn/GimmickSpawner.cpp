@@ -2,8 +2,6 @@
 #include "Core/DreamGimmicks.h"
 #include "Generation/GenerationContext.h"
 #include "Interactables/Balloon.h"
-#include "Interactables/Door.h"
-#include "Interactables/RainbowDoorComponent.h"
 
 namespace LevelGen
 {
@@ -14,30 +12,6 @@ namespace LevelGen
 		{
 			Items.Swap(i, Context.Rand.RandRange(0, i));
 		}
-	}
-
-	int32 FGimmickSpawner::SpawnRainbowDoors(const TArray<ADoor*>& Doors, int32 Count) const
-	{
-		TArray<ADoor*> Candidates;
-		for (ADoor* Door : Doors)
-		{
-			if (Door && !Door->IsInExitRoom())
-			{
-				Candidates.Add(Door);
-			}
-		}
-		Shuffle(Candidates);
-
-		const int32 Num = FMath::Min(Count, Candidates.Num());
-		for (int32 i = 0; i < Num; ++i)
-		{
-			ADoor* Door = Candidates[i];
-			Door->ForceClose();
-			URainbowDoorComponent* Rainbow = NewObject<URainbowDoorComponent>(Door, TEXT("RainbowDoor"));
-			Rainbow->SetupAttachment(Door->GetRootComponent());
-			Rainbow->RegisterComponent();
-		}
-		return Num;
 	}
 
 	int32 FGimmickSpawner::SpawnBalloons(int32 Count) const

@@ -4,11 +4,11 @@
 
 UDreamDifficultySettings::UDreamDifficultySettings()
 {
-	auto Set = [](FDreamDifficultyParams& P, int32 Lives, int32 Shards, int32 RainbowDoors, int32 Balloons, float Scale)
+	auto Set = [](FDreamDifficultyParams& P, int32 Lives, int32 Shards, int32 Keys, int32 Balloons, float Scale)
 	{
 		P.Lives = Lives;
 		P.ShardCount = Shards;
-		P.RainbowDoorCount = RainbowDoors;
+		P.KeyCount = Keys;
 		P.BalloonCount = Balloons;
 		P.EnemySpeedScale = Scale;
 		P.EnemyPerceptionScale = Scale;

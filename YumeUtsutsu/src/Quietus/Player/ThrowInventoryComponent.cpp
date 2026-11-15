@@ -10,6 +10,11 @@ UThrowInventoryComponent::UThrowInventoryComponent()
 	ThrowableClass = AThrowable::StaticClass();
 }
 
+TSubclassOf<AThrowable> UThrowInventoryComponent::GetCarriedClass() const
+{
+	return CarriedClass ? CarriedClass : ThrowableClass;
+}
+
 void UThrowInventoryComponent::Add(TSubclassOf<AThrowable> PickedClass)
 {
 	if (PickedClass)
